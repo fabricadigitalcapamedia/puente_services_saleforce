@@ -11,4 +11,9 @@ import { ApiProperty } from '@nestjs/swagger';
 export class NewContractRequest {
   @ApiProperty({ description: 'CURL' })
   curl: string;
+  @ApiProperty({ description: 'TIPO' })
+  tipo: string;
+  @ApiProperty({ description: 'URL' })
+  url: string;
+
 }

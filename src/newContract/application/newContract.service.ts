@@ -8,6 +8,7 @@ import {
 import { ConfigType } from '@nestjs/config';
 
 import {
+  ERROR,
   ERROR_CONSUMO_PRC,
   OK,
   OUTCODRES,
@@ -18,7 +19,11 @@ import { ApiResponseDto } from '../../share/domain/dto/apiResponse.dto';
 import { NewContractRequest } from '../domain/dto/newContractRequest.dto';
 import { NewContractResponse } from '../domain/dto/newContractResponse.dto';
 import axios from 'axios';
+import { XMLParser } from 'fast-xml-parser';
 
+const options = {
+  removeNSPrefix: true,
+};
 /**
  *  @description Clase servicio responsable recibir el parametro y realizar la logica de negocio.
  *
@@ -38,13 +43,15 @@ export class NewContractService {
     newContractRequest: NewContractRequest,
   ): Promise<ApiResponseDto> {
     try {
-      this.logger.log('procedimientoActivacion request', {
-        request: newContractRequest,
-        transactionId: this.transactionId,
-      });
-      const prcRes = await this.consultaCurl(
-        newContractRequest.curl,
-      );
+      let prcRes; 
+      if(newContractRequest.tipo == "REST"){
+        prcRes = await this.consultaCurl(newContractRequest.curl,);
+      }else if(newContractRequest.tipo == "SOAP") {
+        prcRes = await this.consultaXML(newContractRequest.url, newContractRequest.curl);
+      }
+      if(prcRes=='error'){
+        return new ApiResponseDto(HttpStatus.BAD_REQUEST, ERROR, prcRes);  
+      }
       return new ApiResponseDto(HttpStatus.OK, OK, prcRes);
     } catch (error) {
       this.logger.error(error.message, {
@@ -60,6 +67,32 @@ export class NewContractService {
         new NewContractResponse(OUTCODRES, ERROR_CONSUMO_PRC, ''),
       );
     }
+  }
+
+  public async consultaXML(url: string, xml: string){
+    xml = await this.replaceAll(xml, "\\", "");
+    const axiosConfig = {
+      headers: {
+          'Content-Type': 'text/xml;charset=UTF-8',
+          //'SOAPAction': 'YourSOAPAction', // Reemplaza con la acción SOAP adecuada
+      }
+  };
+    return await axios.post(url, xml, axiosConfig).then(
+      async (response) => {
+        const result  = await this.parceXML(response.data);
+        console.log(response)
+        return  result;
+      }
+    ).catch(async (error) => {
+      const responseError = await this.parceXML(error.response.data)
+      console.log(error.response)
+      return 'error';
+  });
+  }
+
+  async parceXML(response): Promise<any>{
+    const parser = new XMLParser(options);
+    return parser.parse(response);
   }
 
   public async consultaCurl(curlText: string){
@@ -97,8 +130,8 @@ export class NewContractService {
           //curlData.headers[headerName] = headerValue;
         }
       } 
-      if (line.match('--data-raw')) {
-        const bodyMatch = line.match(/--data-raw.+?({.+?})/);
+      if (line.match('--data')) {
+        const bodyMatch = line.match(/--data.+?({.+?})/);
         if (bodyMatch) {
           curlData.body = bodyMatch[1].replace("\\\"", "\"");
         }
@@ -109,6 +142,14 @@ export class NewContractService {
 
     return res;
   }
+
+  async replaceAll(inputString, search, replacement) {
+    let outputString = inputString;
+    while (outputString.includes(search)) {
+        outputString = outputString.replace(search, replacement);
+    }
+    return outputString;
+}
 
   async sendHttpRequest(curlData: any) {
     //const headers = new HttpHeaders(curlData.headers);
@@ -121,7 +162,7 @@ export class NewContractService {
       })
       .catch((error) => {
         console.log(error);
-        return error.response;
+        return 'error';
       });
     }else {
       
@@ -132,7 +173,7 @@ export class NewContractService {
       })
       .catch((error) => {
         console.log(error);
-        return error.response;
+        return 'error';
       })
     }
     

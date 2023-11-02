@@ -11,5 +11,6 @@ export const SERVICE_DESCRIPTION =
 export const SERVICE_PREFIX = `MS/SVC/Service/ServiceTemplateNestJS/V1`;
 export const ERROR_CONSUMO_PRC = 'Error al consumir el procedimiento';
 export const OK = 'OK';
+export const ERROR = 'Fallo el consumo, revise el curl o xml enviado';
 export const OUTCODRES = '-99';
 export const SERVICE_UNAVAILABLE = 'Service Unavailable';
