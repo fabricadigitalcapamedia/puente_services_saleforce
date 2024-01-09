@@ -104,17 +104,17 @@ export class NewContractService {
       headers: {},
       body: ''
     };
-
+    console.log('Llega aquí 1');
     lines.forEach(line => {
       line = line.trim();
-
+      console.log('Llega aquí 2');
       if (line.startsWith('curl')) {
         const urlMatch = line.match(/'(.*?)'/);
         if (urlMatch) {
           curlData.url = urlMatch[1];
           console.log(curlData.url);
         }
-        const methodMatch = line.match(/--data-raw/);
+        const methodMatch = line.match(/--data/);
         if (methodMatch) {
           curlData.method = "POST";
         }else {
@@ -157,7 +157,7 @@ export class NewContractService {
     console.log("LLEGA "+ curlData);
     if(curlData.method == "GET"){
       responseOp = axios.get(curlData.url, {responseType: 'json',}).then((response) => {
-        console.log(response.status);
+        console.log(response.data);
         return response.data;
       })
       .catch((error) => {
@@ -168,7 +168,7 @@ export class NewContractService {
       
       const jsonObject = JSON.parse(curlData.body);
       responseOp = axios.post(curlData.url, jsonObject, {responseType: 'json',}).then((response) => {
-        console.log(response.status);
+        console.log(response.data);
         return response.data;
       })
       .catch((error) => {
